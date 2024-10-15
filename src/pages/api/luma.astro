@@ -1,0 +1,50 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import LumaEvent from "@/components/LumaEvent.astro";
+
+// Set up Lu.ma API endpoint targeting same events API that its front-end uses
+const base_url = "https://api.lu.ma/discover/get-paginated-events?"
+
+// This is San Francisco's hard-coded location ID
+const location = "discover_place_api_id=discplace-BDj7GNbGlsF7Cka";
+
+// Set up pagination, use paging on event ID if there's a query param for it
+const cursor = Astro.url.searchParams.get('pagination_cursor') || '';
+const pagination = cursor == '' ? "" : "&pagination_cursor="+cursor;
+const pagination_limit = "&pagination_limit=50"
+
+// Assemble the API endpoint for events
+const url = (base_url + location + pagination + pagination_limit);
+
+// Initialize data for fetching rows of event info from DB
+let entries = [];
+let results = {};
+
+try {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Response status: ${response.status}`);
+  }
+
+  results = await response.json();
+  entries = results.entries;
+
+} catch (error) {
+  console.error(error.message);
+}
+---
+<Layout title="Luma Events">
+  <main class="container">
+    {entries.map((entry) => 
+    <LumaEvent 
+      title={entry.event.name}
+      url={entry.event.url}
+      host={entry.calendar.name}
+      start_at={entry.start_at}
+      city_state={entry.event.geo_address_info.city_state}
+    />
+    )}
+
+    <pre><code>{JSON.stringify(results)}</code></pre>
+  </main>
+</Layout>

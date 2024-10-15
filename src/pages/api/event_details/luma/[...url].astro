@@ -1,0 +1,38 @@
+---
+// Render this page as an HTML fragment
+export const partial = true;
+
+// Luma provides an event ID that we'll use to access event details
+const {url} = Astro.params;
+const eventUrl = "https://lu.ma/"+url;
+
+// Use JSDOM for DOM querying once we get HTML from Luma
+import jsdom from "jsdom";
+const { JSDOM } = jsdom;
+
+// Fetch event details from Luma
+const response = await fetch(eventUrl);
+const bodyText = await response.text();
+const dom = new JSDOM(bodyText);
+
+// Pull data from POST formData
+const data = await Astro.request.formData();
+const eventTime = data.get("start_at");
+const eventLocation = data.get("city_state");
+const eventName = data.get("title");
+
+// Set up aliases / selectors
+const descriptionQuery = dom.window.document.querySelector(".event-page-right > .event-about-card > .content > .mirror-content");
+const eventDescription = descriptionQuery != null ? descriptionQuery.textContent : "Request Timed Out";
+
+// contentText is loaded. Save it onto a database
+const myDB = Astro.locals.runtime.env.DB;
+const { results } = await myDB
+    .prepare("INSERT or IGNORE INTO Events (EventID, EventName, EventLocation, EventDatetime, EventDescription, EventHasFreeFood, EventFoodReport, EventHasCoding, EventCodingReport, EventHasPrizes, EventPrizesReport) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)")
+    .bind(url, eventName, eventLocation, eventTime, eventDescription, false, "TBD", false, "TBD", false, "TBD")
+    .run();
+---
+<div>
+  <p>From {eventUrl} ({eventTime}): {eventName} @ {eventLocation}</p>
+  <p>{eventDescription}
+</div>

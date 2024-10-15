@@ -1,0 +1,33 @@
+---
+const myDB = Astro.locals.runtime.env.DB;
+const { results } = await myDB
+  .prepare("SELECT * FROM Events")
+  .all();
+---
+<table class="striped">
+  <thead data-theme="dark">
+    <tr>
+      <th scope="col">Name</th>
+      <th scope="col">Location</th>
+      <th scope="col">Date</th>
+      <!-- <th scope="col">Description</th> -->
+      <th scope="col">Food Report</th>
+      <th scope="col">Coding Report</th>
+      <th scope="col">Prizes Report</th>
+    </tr>
+  </thead>
+  <tbody>
+    {results.map((result) => 
+    <tr>
+      <th scope="row">{result.EventName}</th>
+      <td>{result.EventLocation}</td>
+      <td>{result.EventDatetime}</td>
+      <!-- <td>{result.EventDescription}</td> -->
+      <td>{result.EventFoodReport}</td>
+      <td>{result.EventCodingReport}</td>
+      <td>{result.EventPrizesReport}</td>
+    </tr>
+    )}
+  </tbody>
+</table>
+<pre><code>{JSON.stringify(results)}</code></pre>

@@ -1,0 +1,13 @@
+node_compat = true
+
+[[d1_databases]]
+binding = "DB" # i.e. available in your Worker on env.DB
+database_name = "cf-03-prod-db"
+database_id = "630b16c1-f55e-4128-ab5b-a0de2ecec76e"
+
+[env.preview]
+name = "preview"
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "cf-03-preview-db"
+database_id = "c9f26876-2d40-4378-b306-f8972d159336"
