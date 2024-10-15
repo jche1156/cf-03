@@ -1,28 +1,60 @@
 ---
 const myDB = Astro.locals.runtime.env.DB;
 const { results } = await myDB
-  .prepare("SELECT * FROM Events")
+  .prepare("SELECT EventID, EventName, EventDatetime, EventFoodReport, EventCodingReport, EventPrizesReport FROM Events WHERE EventLocation='San Francisco, California' ORDER BY EventDatetime")
   .all();
+
+function format_date(date) {
+  let dt = new Date(date);
+  dt.setTime(dt.getTime() - 7 * 60 * 60 * 1000); // Adjusting for timezone if needed
+
+  // Days of the week array
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  // Format the components
+  const dayOfWeek = days[dt.getUTCDay()];
+  const month = (dt.getUTCMonth() + 1).toString().padStart(2, '0'); // Months are zero-indexed
+  const day = dt.getUTCDate().toString().padStart(2, '0');
+  
+  let hours = dt.getUTCHours();
+  const minutes = dt.getUTCMinutes().toString().padStart(2, '0');
+  const period = hours >= 12 ? 'PM' : 'AM';
+  
+  // Convert 24-hour to 12-hour format
+  hours = hours % 12 || 12;
+  
+  // Combine and return the final formatted string
+  return `${dayOfWeek} ${month}/${day} ${hours}:${minutes}${period}`;
+}
+  
 ---
+<!-- START Navbar -->
+<nav>
+  <ul>
+    <li><h1>SF Events</h1></li>
+  </ul>
+  <ul>
+    <li><a href="/api/luma" role="button" class="secondary" style="width: 100%;">Scraping UI</a></li>
+  </ul>
+</nav>
+<br />
+<!-- END Navbar -->
+<!-- START Events Table -->
 <table class="striped">
   <thead data-theme="dark">
     <tr>
       <th scope="col">Name</th>
-      <th scope="col">Location</th>
-      <th scope="col">Date</th>
-      <!-- <th scope="col">Description</th> -->
-      <th scope="col">Food Report</th>
-      <th scope="col">Coding Report</th>
-      <th scope="col">Prizes Report</th>
+      <th scope="col" style="width: 150px;">Date</th>
+      <th scope="col">Food</th>
+      <th scope="col">Coding</th>
+      <th scope="col">Prizes</th>
     </tr>
   </thead>
   <tbody>
     {results.map((result) => 
     <tr>
-      <th scope="row">{result.EventName}</th>
-      <td>{result.EventLocation}</td>
-      <td>{result.EventDatetime}</td>
-      <!-- <td>{result.EventDescription}</td> -->
+      <th scope="row"><a href={"https://lu.ma/"+result.EventID}>{result.EventName}</a></th>
+      <td>{format_date(result.EventDatetime)}</td>
       <td>{result.EventFoodReport}</td>
       <td>{result.EventCodingReport}</td>
       <td>{result.EventPrizesReport}</td>
@@ -30,4 +62,5 @@ const { results } = await myDB
     )}
   </tbody>
 </table>
+<!-- END Events Table -->
 <pre><code>{JSON.stringify(results)}</code></pre>

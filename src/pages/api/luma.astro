@@ -19,16 +19,20 @@ const url = (base_url + location + pagination + pagination_limit);
 // Initialize data for fetching rows of event info from DB
 let entries = [];
 let results = {};
+let has_more = false;
+let next_cursor = '';
 
 try {
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Response status: ${response.status}`);
   }
-
   results = await response.json();
   entries = results.entries;
-
+  has_more = results.has_more;
+  if (has_more == true) {
+    next_cursor = results.next_cursor;
+  }
 } catch (error) {
   console.error(error.message);
 }
@@ -44,7 +48,17 @@ try {
       city_state={entry.event.geo_address_info.city_state}
     />
     )}
-
+    <a 
+      href={"/api/luma?pagination_cursor="+next_cursor} 
+      role="button" 
+      hidden={!has_more} 
+      style="width: 100%;"
+      class="secondary"
+    >
+      Get More
+    </a>
+    <br />
+    <br />
     <pre><code>{JSON.stringify(results)}</code></pre>
   </main>
 </Layout>
