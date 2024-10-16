@@ -28,8 +28,7 @@ const eventLocation = data.get("city_state");
 const eventTime = data.get("start_at");
 const eventUrl = "https://lu.ma/"+url;
 let eventDescription = "Missing Description";
-
-if (result.length > 0) {
+if (result.results != null) {
   // Found cached result in DB, convert the result
   const events: LumaEventResult[] = result.results as LumaEventResult[];
   eventDescription = events[0].EventDescription;
