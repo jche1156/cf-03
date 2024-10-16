@@ -19,7 +19,7 @@ export interface LumaEventResult {
 const result: D1Result = await myDB
   .prepare("SELECT EventID, EventDescription FROM Events WHERE EventID = ?")
   .bind(url)
-  .first();
+  .all();
 
 // Prepare variables
 const data = await Astro.request.formData();
@@ -30,8 +30,9 @@ const eventUrl = "https://lu.ma/"+url;
 let eventDescription = "Missing Description";
 
 if (result != null) {
-  // Cached result in DB
-  eventDescription = result.EventDescription;
+  // Found cached result in DB, convert the result
+  const events: LumaEventResult[] = result.results as LumaEventResult[];
+  eventDescription = events[0].EventDescription;
 } else {
   // No hit in DB, scrape from Lu.ma
   const response = await fetch(eventUrl);
