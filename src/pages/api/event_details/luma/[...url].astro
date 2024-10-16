@@ -31,20 +31,23 @@ let eventDescription = "Missing Description";
 if (result.results != null) {
   // Found cached result in DB, convert the result
   const events: LumaEventResult[] = result.results as LumaEventResult[];
-  eventDescription = events[0].EventDescription;
-} else {
-  // No hit in DB, scrape from Lu.ma
-  const response = await fetch(eventUrl);
-  const htmlString = await response.text();
-  const dom = htmlparser2.parseDocument(htmlString);
-  const selector = ".event-page-right > .event-about-card > .content > .mirror-content";
-  const element = selectOne(selector, dom);
-  eventDescription = "No Response";
-
-  if (element) {
-    eventDescription = DomUtils.getText(element);
+  console.log(events);
+  if (events.length > 0) {
+    eventDescription = events[0].EventDescription;
   } else {
-    console.log("Element not found.");
+    // No hit in DB, scrape from Lu.ma
+    const response = await fetch(eventUrl);
+    const htmlString = await response.text();
+    const dom = htmlparser2.parseDocument(htmlString);
+    const selector = ".event-page-right > .event-about-card > .content > .mirror-content";
+    const element = selectOne(selector, dom);
+    eventDescription = "No Response";
+
+    if (element) {
+      eventDescription = DomUtils.getText(element);
+    } else {
+      console.log("Element not found.");
+    }
   }
 }
 if (eventDescription != "No Response") {
