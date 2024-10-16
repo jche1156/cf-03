@@ -16,9 +16,39 @@ const pagination_limit = "&pagination_limit=50"
 // Assemble the API endpoint for events
 const url = (base_url + location + pagination + pagination_limit);
 
+// Declare types
+export interface EventAddressInfo {
+  city_state: string;
+}
+export interface EventCalendar {
+  name: string;
+}
+
+export interface EventDetails {
+  name: string;
+  url: string;
+  geo_address_info: EventAddressInfo;
+}
+
+export interface EventEntry {
+  event: EventDetails;
+  calendar: EventCalendar;
+  start_at: string;
+}
+
+export interface LumaResponse {
+  entries: EventEntry[];
+  next_cursor: string;
+  has_more: boolean;
+}
+
 // Initialize data for fetching rows of event info from DB
-let entries = [];
-let results = {};
+let entries: EventEntry[] = [];
+let results: LumaResponse = {
+  entries: [],
+  next_cursor: "",
+  has_more: false
+};
 let has_more = false;
 let next_cursor = '';
 
@@ -34,12 +64,16 @@ try {
     next_cursor = results.next_cursor;
   }
 } catch (error) {
-  console.error(error.message);
+  if (error instanceof Error) {
+    console.error(error.message);
+  } else {
+    console.error(String(error));
+  }
 }
 ---
 <Layout title="Luma Events">
   <main class="container">
-    {entries.map((entry) => 
+    {entries.map((entry: EventEntry) => 
     <LumaEvent 
       title={entry.event.name}
       url={entry.event.url}

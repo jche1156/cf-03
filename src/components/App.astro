@@ -1,10 +1,23 @@
 ---
 const myDB = Astro.locals.runtime.env.DB;
-const { results } = await myDB
+type D1Result = import("@cloudflare/workers-types").D1Result;
+
+export interface LumaEventResult {
+  EventID: string;
+  EventName: string;
+  EventDatetime: string;
+  EventFoodReport: string;
+  EventCodingReport: string;
+  EventPrizesReport: string;
+}
+const results: D1Result = await myDB
   .prepare("SELECT EventID, EventName, EventDatetime, EventFoodReport, EventCodingReport, EventPrizesReport FROM Events WHERE EventLocation='San Francisco, California' ORDER BY EventDatetime")
   .all();
 
-function format_date(date) {
+// Cast the results to LumaEventResult[]
+const events: LumaEventResult[] = results.results as LumaEventResult[];
+
+function format_date(date: string): string {
   let dt = new Date(date);
   dt.setTime(dt.getTime() - 7 * 60 * 60 * 1000); // Adjusting for timezone if needed
 
@@ -51,13 +64,13 @@ function format_date(date) {
     </tr>
   </thead>
   <tbody>
-    {results.map((result) => 
+    {events.map((event) => 
     <tr>
-      <th scope="row"><a href={"https://lu.ma/"+result.EventID}>{result.EventName}</a></th>
-      <td>{format_date(result.EventDatetime)}</td>
-      <td>{result.EventFoodReport}</td>
-      <td>{result.EventCodingReport}</td>
-      <td>{result.EventPrizesReport}</td>
+      <th scope="row"><a href={"https://lu.ma/"+event.EventID}>{event.EventName}</a></th>
+      <td>{format_date(event.EventDatetime)}</td>
+      <td>{event.EventFoodReport}</td>
+      <td>{event.EventCodingReport}</td>
+      <td>{event.EventPrizesReport}</td>
     </tr>
     )}
   </tbody>

@@ -1,17 +1,5 @@
 ---
-import jsdom from "jsdom";
-const { JSDOM } = jsdom;
 const {title, url, host, start_at, city_state} = Astro.props;
-
-const eventUrl = "https://lu.ma/"+url;
-// const response = await fetch(eventUrl); //Fetching this per-component triggers a Lu.ma bot blocker
-// const bodyText = await response.text();
-
-// const dom = new JSDOM(bodyText);
-// console.log(eventUrl);
-
-// const query = dom.window.document.querySelector(".event-page-right > .event-about-card > .content > .mirror-content");
-// const contentText = query != null ? query.textContent : "No Text";
 ---
 <article>
   <header>
