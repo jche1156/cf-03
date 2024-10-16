@@ -7,38 +7,52 @@ import { DomUtils } from 'htmlparser2';
 
 // Luma provides an event ID that we'll use to access event details
 const {url} = Astro.params;
-const eventUrl = "https://lu.ma/"+url;
 
-// Fetch event details from Luma
-const response = await fetch(eventUrl);
-const htmlString = await response.text();
-
-const dom = htmlparser2.parseDocument(htmlString);
-
-// Pull data from POST formData
-const data = await Astro.request.formData();
-const eventTime = data.get("start_at");
-const eventLocation = data.get("city_state");
-const eventName = data.get("title");
-
-const selector = ".event-page-right > .event-about-card > .content > .mirror-content";
-const element = selectOne(selector, dom);
-let eventDescription = "No Response";
-
-if (element) {
-  const textContent = DomUtils.getText(element);
-  eventDescription = textContent;
-} else {
-  console.log("Element not found.");
-}
-
-// contentText is loaded. Save it onto a database
+// Check event ID against database to see if we've cached an event already
 const myDB = Astro.locals.runtime.env.DB;
-// const { results } =
-await myDB
+type D1Result = import("@cloudflare/workers-types").D1Result;
+
+export interface LumaEventResult {
+  EventID: string;
+  EventDescription: string;
+}
+const result: D1Result = await myDB
+  .prepare("SELECT EventID, EventDescription FROM Events WHERE EventID = ?")
+  .bind(url)
+  .first();
+
+// Prepare variables
+const data = await Astro.request.formData();
+const eventName = data.get("title");
+const eventLocation = data.get("city_state");
+const eventTime = data.get("start_at");
+const eventUrl = "https://lu.ma/"+url;
+let eventDescription = "Missing Description";
+
+if (result != null) {
+  // Cached result in DB
+  eventDescription = result.EventDescription;
+} else {
+  // No hit in DB, scrape from Lu.ma
+  const response = await fetch(eventUrl);
+  const htmlString = await response.text();
+  const dom = htmlparser2.parseDocument(htmlString);
+  const selector = ".event-page-right > .event-about-card > .content > .mirror-content";
+  const element = selectOne(selector, dom);
+  eventDescription = "No Response";
+
+  if (element) {
+    eventDescription = DomUtils.getText(element);
+  } else {
+    console.log("Element not found.");
+  }
+}
+if (eventDescription != "No Response") {
+  await myDB
     .prepare("INSERT or IGNORE INTO Events (EventID, EventName, EventLocation, EventDatetime, EventDescription, EventHasFreeFood, EventFoodReport, EventHasCoding, EventCodingReport, EventHasPrizes, EventPrizesReport) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)")
     .bind(url, eventName, eventLocation, eventTime, eventDescription, false, "TBD", false, "TBD", false, "TBD")
     .run();
+}
 ---
 <div>
   <p>From {eventUrl} ({eventTime}): {eventName} @ {eventLocation}</p>
