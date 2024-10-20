@@ -1,3 +1,4 @@
+name= "cf-03-sf-events"
 node_compat = true
 
 [[d1_databases]]

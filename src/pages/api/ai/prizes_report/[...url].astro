@@ -11,7 +11,7 @@ const {url} = Astro.params;
 const myDB = Astro.locals.runtime.env.DB;
 
 const client = new OpenAI({
-  apiKey: import.meta.env.OPENAI_API_KEY
+  apiKey: Astro.locals.runtime.env.OPENAI_API_KEY as string
 });
 
 const PrizesReport = z.object({
