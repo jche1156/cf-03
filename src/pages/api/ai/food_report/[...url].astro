@@ -1,0 +1,76 @@
+---
+// Render this page as an HTML fragment
+export const partial = true;
+
+import OpenAI from "openai";
+import { zodResponseFormat } from "openai/helpers/zod";
+import { z } from "zod";
+type D1Result = import("@cloudflare/workers-types").D1Result;
+
+const {url} = Astro.params;
+const myDB = Astro.locals.runtime.env.DB;
+
+const client = new OpenAI({
+  apiKey: import.meta.env.OPENAI_API_KEY
+});
+
+const FoodReport = z.object({
+  eventHasFreeFood: z.boolean(),
+  eventFoodReport: z.string(),
+});
+
+export interface LumaEventResult {
+  EventID: string;
+  EventDescription: string;
+  EventFoodReport: string;
+}
+
+const result: D1Result = await myDB
+  .prepare("SELECT EventID, EventDescription, EventFoodReport FROM Events WHERE EventID = ?")
+  .bind(url)
+  .all();
+
+let foodReport = "TBD", eventDescription = "";
+
+if (result.results != null) {
+  const events: LumaEventResult[] = result.results as LumaEventResult[];
+  if (events.length > 0) {
+    eventDescription = events[0].EventDescription;
+    foodReport = events[0].EventFoodReport;
+  }
+}
+
+if (eventDescription != "") {
+  const completion = await client.beta.chat.completions.parse({
+    model: "gpt-4o",
+    messages: [
+      { role: "system", content: "Generate a report by helping analyze descriptions for pertinent information. If information is lacking, try to infer from details. If too little information is given, you can say that about the data. Be very brief." },
+      { role: "user", content: "Help me figure out where there is food at this event according to the description, and give a short brief on what type, as well as whether it's free or we're expected to pay for our own. Also, if there's FREE food, mention that in the boolean you'll return. Keep your answer brief, at most 1 short sentence. For example, 'No mentions' is fine.\n```\n"+eventDescription+"\n```\n" },
+    ],
+    response_format: zodResponseFormat(FoodReport, "report"),
+  });
+  let report = {
+    eventHasFreeFood: false,
+    eventFoodReport: "TBD",
+  };
+  
+  if (completion.choices[0].message.parsed != null) {
+    report = completion.choices[0].message.parsed;
+  }
+  
+  foodReport = report.eventFoodReport;
+  await myDB
+    .prepare("UPDATE Events SET EventFoodReport = ?1, EventHasFreeFood = ?2 WHERE EventID = ?3")
+    .bind(foodReport, report.eventHasFreeFood, url)
+    .run();
+}
+---
+<td id={"food_report_"+url} hx-swap-oob="true">{foodReport}</td>
+<button 
+  hx-get={"/api/ai/coding_report/"+url}
+  class="contrast"
+  hx-swap="outerHTML"
+>
+  AI
+</button>
+

@@ -28,7 +28,7 @@ function format_date(date: string): string {
   const dayOfWeek = days[dt.getUTCDay()];
   const month = (dt.getUTCMonth() + 1).toString().padStart(2, '0'); // Months are zero-indexed
   const day = dt.getUTCDate().toString().padStart(2, '0');
-  
+
   let hours = dt.getUTCHours();
   const minutes = dt.getUTCMinutes().toString().padStart(2, '0');
   const period = hours >= 12 ? 'PM' : 'AM';
@@ -61,6 +61,7 @@ function format_date(date: string): string {
       <th scope="col">Food</th>
       <th scope="col">Coding</th>
       <th scope="col">Prizes</th>
+      <th scope="col">Action</th>
     </tr>
   </thead>
   <tbody>
@@ -68,9 +69,19 @@ function format_date(date: string): string {
     <tr>
       <th scope="row"><a href={"https://lu.ma/"+event.EventID}>{event.EventName}</a></th>
       <td>{format_date(event.EventDatetime)}</td>
-      <td>{event.EventFoodReport}</td>
-      <td>{event.EventCodingReport}</td>
-      <td>{event.EventPrizesReport}</td>
+      <td id={"food_report_"+event.EventID}>{event.EventFoodReport}</td>
+      <td id={"coding_report_"+event.EventID}>{event.EventCodingReport}</td>
+      <td id={"prizes_report_"+event.EventID}>{event.EventPrizesReport}</td>
+      <td>
+      { event.EventPrizesReport == "TBD" ?
+        <button 
+          hx-get={"/api/ai/"+(event.EventFoodReport == "TBD" ? "food" : event.EventCodingReport == "TBD" ? "coding" : "prizes")+"_report/"+event.EventID}
+          class={event.EventFoodReport != "TBD" ? event.EventCodingReport != "TBD" ? "secondary" : "contrast" : ""}
+          hx-swap="outerHTML"
+        >AI</button> :
+        <button disabled>AI</button>
+      }
+      </td>
     </tr>
     )}
   </tbody>

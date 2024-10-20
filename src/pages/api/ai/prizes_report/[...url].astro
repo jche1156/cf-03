@@ -1,0 +1,72 @@
+---
+// Render this page as an HTML fragment
+export const partial = true;
+
+import OpenAI from "openai";
+import { zodResponseFormat } from "openai/helpers/zod";
+import { z } from "zod";
+type D1Result = import("@cloudflare/workers-types").D1Result;
+
+const {url} = Astro.params;
+const myDB = Astro.locals.runtime.env.DB;
+
+const client = new OpenAI({
+  apiKey: import.meta.env.OPENAI_API_KEY
+});
+
+const PrizesReport = z.object({
+  eventHasPrizes: z.boolean(),
+  eventPrizesReport: z.string(),
+});
+
+export interface LumaEventResult {
+  EventID: string;
+  EventDescription: string;
+  EventPrizesReport: string;
+}
+
+const result: D1Result = await myDB
+  .prepare("SELECT EventID, EventDescription, EventPrizesReport FROM Events WHERE EventID = ?")
+  .bind(url)
+  .all();
+
+let prizesReport = "TBD", eventDescription = "";
+
+if (result.results != null) {
+  const events: LumaEventResult[] = result.results as LumaEventResult[];
+  if (events.length > 0) {
+    eventDescription = events[0].EventDescription;
+    prizesReport = events[0].EventPrizesReport;
+  }
+}
+
+// foodReport == "TBD" && 
+if (eventDescription != "") {
+  const completion = await client.beta.chat.completions.parse({
+    model: "gpt-4o",
+    messages: [
+      { role: "system", content: "Generate a report by helping analyze descriptions for pertinent information. If information is lacking, try to infer from details. If too little information is given, you can say that about the data. Be very brief." },
+      { role: "user", content: "Help me figure out where there are prizes at the event. If there are, give a short brief on what it is. Mention that also in the boolean you'll return. Keep your answer brief, at most 1 short sentence. For example, 'None' is fine.\n```\n"+eventDescription+"\n```\n" },
+    ],
+    response_format: zodResponseFormat(PrizesReport, "report"),
+  });
+ 
+  let report = {
+    eventHasPrizes: false,
+    eventPrizesReport: "TBD",
+  };
+  
+  if (completion.choices[0].message.parsed != null) {
+    report = completion.choices[0].message.parsed;
+  }
+
+  prizesReport = report.eventPrizesReport;
+  await myDB
+    .prepare("UPDATE Events SET EventPrizesReport = ?1, EventHasPrizes = ?2 WHERE EventID = ?3")
+    .bind(prizesReport, report.eventHasPrizes, url)
+    .run();
+}
+---
+<td id={"prizes_report_"+url} hx-swap-oob="true">{prizesReport}</td>
+<button disabled>AI</button>
+

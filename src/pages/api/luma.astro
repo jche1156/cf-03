@@ -70,6 +70,22 @@ try {
     console.error(String(error));
   }
 }
+// Get known events from DB
+const myDB = Astro.locals.runtime.env.DB;
+type D1Result = import("@cloudflare/workers-types").D1Result;
+
+export interface LumaEventResult {
+  EventID: string;
+}
+let known_events: string[] = [];
+
+const result: D1Result = await myDB
+  .prepare("SELECT EventID FROM Events")
+  .all();  
+if (result.results != null) {
+  const events = result.results as LumaEventResult[];
+  known_events = events.map(e => e.EventID);
+}
 ---
 <Layout title="Luma Events">
   <main class="container">
@@ -80,6 +96,7 @@ try {
       host={entry.calendar.name}
       start_at={entry.start_at}
       city_state={entry.event.geo_address_info.city_state}
+      is_known={known_events.includes(entry.event.url)}
     />
     )}
     <a 
